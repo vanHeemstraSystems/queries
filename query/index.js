@@ -31,7 +31,8 @@ function Query(model, query, options, error) {
   this._model = model; // constructor of the model we should use for the results.
   if (model !== undefined) {
     this._r = model._getModel()._Mapping.r; //WAS model._getModel()._thinky.r;
-    util.loopKeys(model._getModel()._staticMethods, function(staticMethods, key) {
+    //ORIGINAL util.loopKeys(model._getModel()._staticMethods, function(staticMethods, key) {
+    self.utility().loopKeys(model._getModel()._staticMethods, function(staticMethods, key) {
       (function(_key) {
         _self[_key] = function() {
           return staticMethods[_key].apply(_self, arguments);
@@ -48,7 +49,8 @@ function Query(model, query, options, error) {
     this._query = this._r.table(model.getTableName());
   }
 
-  if (util.isPlainObject(options)) {
+  //ORIGINAL if (util.isPlainObject(options)) {
+  if (self.utility().isPlainObject(options)) {
     if (options.postValidation) {
       this._postValidation = options.postValidation === true;
     }
@@ -92,7 +94,8 @@ Query.prototype.setrethinkdb = function(fnOrValue) {
    */
   //ORIGINAL var Term = require(path.join(paths.libraries, '/rethinkdbdash.js'))({pool: false}).expr(1).__proto__;
   var Term = self._rethinkdb({pool: false}).expr(1).__proto__;
-  util.loopKeys(Term, function(Term, key) {
+  //ORIGINAL util.loopKeys(Term, function(Term, key) {
+  self.utility().loopKeys(Term, function(Term, key) {
     if (key === 'run' || key[0] === '_') return;
     // Note: We suppose that no method has an empty name
     switch (key) {
@@ -123,9 +126,12 @@ Query.prototype.setrethinkdb = function(fnOrValue) {
             options.returnChanges = 'always';
             var error = null;
             var self = this;
-            util.tryCatch(function() {
-              if (util.isPlainObject(value)) {
-                schemaUtil.validate(value, self._model._schema, '', {enforce_missing: false});
+            //ORIGINAL util.tryCatch(function() {
+            self.utility().tryCatch(function() {
+              //ORIGINAL if (util.isPlainObject(value)) {
+              if (self.utility().isPlainObject(value)) {
+                //ORIGINAL schemaUtil.validate(value, self._model._schema, '', {enforce_missing: false});
+                self.schemautility().validate(value, self._model._schema, '', {enforce_missing: false});
               }
             }, function(err) {
               error = err;
@@ -186,6 +192,10 @@ Query.prototype.schema = function() {
 
 Query.prototype.setschema = function(fnOrValue) {
   self._schema = fnOrValue;
+}
+
+Query.prototype.schemautility = function() {
+  return self._schemaUtility;
 }
 
 Query.prototype.utility = function() {
@@ -290,7 +300,8 @@ Query.prototype._execute = function(options, parse) {
   var self = this;
   options = options || {};
   var fullOptions = {groupFormat: 'raw'}
-  util.loopKeys(options, function(options, key) {
+  //ORIGINAL util.loopKeys(options, function(options, key) {
+  self.utility().loopKeys(options, function(options, key) {
     fullOptions[key] = options[key]
   });
   if (parse === true) {
@@ -298,7 +309,8 @@ Query.prototype._execute = function(options, parse) {
   }
 
   if (self._model._error !== null) {
-    return Promise.reject(self._model._error);
+    //ORIGINAL return Promise.reject(self._model._error);
+    return self.promise().reject(self._model._error);
   }
   return self._model.ready().then(function() {
     return self._executeCallback(fullOptions, parse, options.groupFormat);
@@ -308,7 +320,8 @@ Query.prototype._execute = function(options, parse) {
 Query.prototype._executeCallback = function(fullOptions, parse, groupFormat) {
   var self = this;
   if (self._error !== undefined) {
-    return Promise.reject(new Error("The partial value is not valid, so the write was not executed. The original error was:\n"+self._error.message));
+    //ORIGINAL return Promise.reject(new Error("The partial value is not valid, so the write was not executed. The original error was:\n"+self._error.message));
+    return self.promise().reject(new Error("The partial value is not valid, so the write was not executed. The original error was:\n"+self._error.message));
   }
 
   return self._query.run(fullOptions).then(function(result) {
@@ -352,7 +365,8 @@ Query.prototype._executeCallback = function(fullOptions, parse, groupFormat) {
 
     return result;
   }).catch(function(err) {
-    return Promise.reject(Errors.create(err));
+    //ORIGINAL return Promise.reject(Errors.create(err));
+    return self.promise().reject(Errors.create(err));
   })
 };
 
@@ -363,13 +377,16 @@ Query.prototype._validateQueryResult = function(result) {
   var self = this;
   if (result.errors > 0) {
     console.log(result);
-    return Promise.reject(new Errors.InvalidWrite("An error occured during the write", result));
+    //ORIGINAL return Promise.reject(new Errors.InvalidWrite("An error occured during the write", result));
+    return self.promise().reject(new Errors.InvalidWrite("An error occured during the write", result));
   }
   if (!Array.isArray(result.changes)) {
     if (self._isPointWrite()) {
-      return Promise.resolve();
+      //ORIGINAL return Promise.resolve();
+      return self.promise().resolve();
     }
-    return Promise.resolve([]);
+    //ORIGINAL return Promise.resolve([]);
+    return self.promise().resolve([]);
   }
 
   var promises = [];
@@ -380,7 +397,8 @@ Query.prototype._validateQueryResult = function(result) {
       }
     })(i)
   }
-  return Promise.all(promises).then(function(result) {
+  //ORIGINAL return Promise.all(promises).then(function(result) {
+  return self.promise().all(promises).then(function(result) {
     if (self._isPointWrite()) {
       if (result.length > 1) {
         throw new Error('A point write returned multiple values')
@@ -399,7 +417,8 @@ Query.prototype._validateQueryResult = function(result) {
       var r = self._model._Mapping.r; //WAS self._model._thinky.r;
       for(var p=0; p<result.changes.length; p++) {
         // Extract the primary key of the document saved in the database
-        var primaryKey = util.extractPrimaryKey(
+        //ORIGINAL var primaryKey = util.extractPrimaryKey(
+        var primaryKey = self.utility().extractPrimaryKey(
             result.changes[p].old_val,
             result.changes[p].new_val,
             self._model._pk)
@@ -431,7 +450,8 @@ Query.prototype._validateQueryResult = function(result) {
         );
       }
 
-      return Promise.all(revertPromises).then(function(result) {
+      //ORIGINAL return Promise.all(revertPromises).then(function(result) {
+      return self.promise().all(revertPromises).then(function(result) {
         throw new Error("The write failed, and the changes were reverted.");
       }).error(function(error) {
         throw new Error("The write failed, and the attempt to revert the changes failed with the error:\n"+error.message);
@@ -447,7 +467,8 @@ Query.prototype._validateQueryResult = function(result) {
  * instances of the model.
  */
 Query.prototype._convertGroupedData = function(data) {
-  if (util.isPlainObject(data) && (data.$reql_type$ === "GROUPED_DATA")) {
+  //ORIGINAL if (util.isPlainObject(data) && (data.$reql_type$ === "GROUPED_DATA")) {
+  if (self.utility().isPlainObject(data) && (data.$reql_type$ === "GROUPED_DATA")) {
     var result = [];
     var reduction;
     for(var i=0; i<data.data.length; i++) {
@@ -481,7 +502,8 @@ Query.prototype.getJoin = function(modelToGet, getAll, gotModel) {
   var joins = this._model._getModel()._joins;
 
   var getAll = modelToGet === undefined;
-  if (util.isPlainObject(modelToGet) === false) {
+  //ORIGINAL if (util.isPlainObject(modelToGet) === false) {
+  if (self.utility().isPlainObject(modelToGet) === false) {
     modelToGet = {};
   }
   var innerQuery;
@@ -489,8 +511,10 @@ Query.prototype.getJoin = function(modelToGet, getAll, gotModel) {
   gotModel = gotModel || {};
   gotModel[model.getTableName()] = true;
 
-  util.loopKeys(joins, function(joins, key) {
-    if (util.recurse(key, joins, modelToGet, getAll, gotModel)) {
+  //ORIGINAL util.loopKeys(joins, function(joins, key) {
+  self.utility().loopKeys(joins, function(joins, key) {
+    //ORIGINAL if (util.recurse(key, joins, modelToGet, getAll, gotModel)) {
+    if (self.utility().recurse(key, joins, modelToGet, getAll, gotModel)) {
       switch (joins[key].type) {
         case 'hasOne':
         case 'belongsTo':
