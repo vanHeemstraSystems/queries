@@ -49,10 +49,8 @@ function Query(model, query, options, error) {
     // By default, we initialize the query to `r.table(<tableName>)`.
     this._query = this._r.table(model.getTableName());
   }
-
-  console.log('queries query - self._utility: ', self._utility); // FOR TEST ONLY!
   
-  try { //NEW LINE: self._utility needs to be not an empty function
+  if (options !== undefined) { // NEW LINE, TO PREVENT AN ERROR [TypeError: Cannot read property 'isPlainObject' of undefined] 
 
     //ORIGINAL if (util.isPlainObject(options)) {
     if (self._utility.isPlainObject(options)) {
@@ -70,9 +68,6 @@ function Query(model, query, options, error) {
       this._ungroup = false;
     }
 
-  } //NEW LINE
-  catch(err) { //NEW LINE
-    console.log('queries query - error: ', err); //NEW LINE
   } //NEW LINE
 
   if (error) {
