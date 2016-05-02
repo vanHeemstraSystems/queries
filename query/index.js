@@ -6,6 +6,7 @@
 //var schemaUtil = require(__dirname+'/schema.js'); // REMOVE, added as a property
 //var Feed = require(__dirname+'/feed.js'); // REMOVE, added as a property
 
+var self = this; 
 
 /**
  * Constructor for a Query. A Query basically wraps a ReQL queries to keep track
@@ -15,7 +16,7 @@
  * @param {boolean=} postValidation whether post query validation should be performed
  */
 function Query(model, query, options, error) {
-  var self = this;
+  var _self = this;
   // add key value pairs here
   // self's are not directly publicly accessible, only through their public method(s)
   // use self's here for protection from direct access
@@ -32,8 +33,8 @@ function Query(model, query, options, error) {
     this._r = model._getModel()._Mapping.r; //WAS model._getModel()._thinky.r;
     util.loopKeys(model._getModel()._staticMethods, function(staticMethods, key) {
       (function(_key) {
-        self[_key] = function() {
-          return staticMethods[_key].apply(self, arguments);
+        _self[_key] = function() {
+          return staticMethods[_key].apply(_self, arguments);
         };
       })(key);
     });
@@ -785,11 +786,10 @@ Query.prototype.removeRelation = function(field, joinedDocument) {
 };
 
 /**
- * Import all the methods from rethinkdbdash, expect the private one (the one
+ * Import all the methods from rethinkdbdash, except the private one (the one
  * starting with an underscore).
  * Some method are slightly changed: `get`, `update`, `replace`.
  */
-
 (function() {
   var Term = require(path.join(paths.libraries, '/rethinkdbdash.js'))({pool: false}).expr(1).__proto__;
   util.loopKeys(Term, function(Term, key) {
