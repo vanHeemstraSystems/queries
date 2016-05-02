@@ -16,6 +16,7 @@ var self = this;
  * @param {boolean=} postValidation whether post query validation should be performed
  */
 function Query(model, query, options, error) {
+  console.log('queries query - Query called');
   var _self = this;
   // add key value pairs here
   // self's are not directly publicly accessible, only through their public method(s)
