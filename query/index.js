@@ -98,8 +98,11 @@ Query.prototype.setrethinkdb = function(fnOrValue) {
    * starting with an underscore).
    * Some method are slightly changed: `get`, `update`, `replace`.
    */
+
+  console.log('queries query - self._rethinkdb: ', self._rethinkdb); // FOR TESTING ONLY!
+
   //ORIGINAL var Term = require(path.join(paths.libraries, '/rethinkdbdash.js'))({pool: false}).expr(1).__proto__;
-  var Term = self._rethinkdb({pool: false}).expr(1).__proto__;
+  var Term = self._rethinkdb({pool: false}).expr(1).__proto__; // Causes [TypeError: self._rethinkdb is not a function]
   //ORIGINAL util.loopKeys(Term, function(Term, key) {
   self.utility().loopKeys(Term, function(Term, key) {
     if (key === 'run' || key[0] === '_') return;
