@@ -84,7 +84,101 @@ Query.prototype.rethinkdb = function() {
 
 Query.prototype.setrethinkdb = function(fnOrValue) {
   self._rethinkdb = fnOrValue;
-}
+  // Added below functionality, now that we have access to rethinkdb Object
+  /**
+   * Import all the methods from rethinkdbdash, except the private ones (the ones
+   * starting with an underscore).
+   * Some method are slightly changed: `get`, `update`, `replace`.
+   */
+  //ORIGINAL var Term = require(path.join(paths.libraries, '/rethinkdbdash.js'))({pool: false}).expr(1).__proto__;
+  var Term = self._rethinkdb({pool: false}).expr(1).__proto__;
+  util.loopKeys(Term, function(Term, key) {
+    if (key === 'run' || key[0] === '_') return;
+    // Note: We suppose that no method has an empty name
+    switch (key) {
+      case 'get':
+        // `get` in Mapping returns an error if the document is not found. //WAS // `get` in thinky returns an error if the document is not found.
+        // The driver currently just returns `null`.
+        (function(key) {
+          Query.prototype[key] = function() {
+            return new Query(this._model, this._query[key].apply(this._query, arguments)).default(this._r.error(new Errors.DocumentNotFound().message));
+          }
+        })(key);
+        // Copy it in `_get` without `default`.
+        (function(key) {
+          Query.prototype['_get'] = function() {
+            // Create a new query to let people fork it
+            return new Query(this._model, this._query[key].apply(this._query, arguments));
+          }
+        })(key);
+        break;
+      case 'update':
+      case 'replace':
+        // `update` and `replace` can be used. A partial validation is performed before
+        // sending the query, and a full validation is performed after the query. If the
+        // validation fails, the document(s) will be reverted.
+        (function(key) {
+          Query.prototype[key] = function(value, options) {
+            options = options || {};
+            options.returnChanges = 'always';
+            var error = null;
+            var self = this;
+            util.tryCatch(function() {
+              if (util.isPlainObject(value)) {
+                schemaUtil.validate(value, self._model._schema, '', {enforce_missing: false});
+              }
+            }, function(err) {
+              error = err;
+            });
+            return new Query(this._model, this._query[key].call(this._query, value, options), {postValidation: true}, error);
+          }
+        })(key);
+        break;
+
+      case 'changes':
+        (function(key) {
+          Query.prototype[key] = function() {
+            // In case of `get().changes()` we want to remove the default(r.errror(...))
+            // TODO: Do not hardcode this?
+            if ((typeof this._query === 'function') && (this._query._query[0] === 92)) {
+              this._query._query = this._query._query[1][0];
+            }
+            return new Query(this._model, this._query[key].apply(this._query, arguments));
+          }
+        })(key);
+        break;
+
+      case 'then':
+      case 'error':
+      case 'catch':
+      case 'finally':
+        (function(key) {
+          Query.prototype[key] = function() {
+            var promise = this.run();
+            return promise[key].apply(promise, arguments);
+          }
+        })(key);
+        break;
+
+      case 'ungroup':
+        (function(key) {
+          Query.prototype[key] = function() {
+            return new Query(this._model, this._query[key].apply(this._query, arguments), {ungroup: true});
+          }
+        })(key);
+        break;
+
+      default:
+        (function(key) {
+          Query.prototype[key] = function() {
+            // Create a new query to let people fork it
+            return new Query(this._model, this._query[key].apply(this._query, arguments));
+          }
+        })(key);
+        break;
+      }
+  });
+} // oef setrethinkdb
 
 Query.prototype.schema = function() {
   return self._schema;
@@ -785,100 +879,101 @@ Query.prototype.removeRelation = function(field, joinedDocument) {
   }
 };
 
-/**
- * Import all the methods from rethinkdbdash, except the private one (the one
- * starting with an underscore).
- * Some method are slightly changed: `get`, `update`, `replace`.
- */
-(function() {
-  var Term = require(path.join(paths.libraries, '/rethinkdbdash.js'))({pool: false}).expr(1).__proto__;
-  util.loopKeys(Term, function(Term, key) {
-    if (key === 'run' || key[0] === '_') return;
-    // Note: We suppose that no method has an empty name
-    switch (key) {
-      case 'get':
-        // `get` in Mapping returns an error if the document is not found. //WAS // `get` in thinky returns an error if the document is not found.
-        // The driver currently just returns `null`.
-        (function(key) {
-          Query.prototype[key] = function() {
-            return new Query(this._model, this._query[key].apply(this._query, arguments)).default(this._r.error(new Errors.DocumentNotFound().message));
-          }
-        })(key);
-        // Copy it in `_get` without `default`.
-        (function(key) {
-          Query.prototype['_get'] = function() {
-            // Create a new query to let people fork it
-            return new Query(this._model, this._query[key].apply(this._query, arguments));
-          }
-        })(key);
-        break;
-      case 'update':
-      case 'replace':
-        // `update` and `replace` can be used. A partial validation is performed before
-        // sending the query, and a full validation is performed after the query. If the
-        // validation fails, the document(s) will be reverted.
-        (function(key) {
-          Query.prototype[key] = function(value, options) {
-            options = options || {};
-            options.returnChanges = 'always';
-            var error = null;
-            var self = this;
-            util.tryCatch(function() {
-              if (util.isPlainObject(value)) {
-                schemaUtil.validate(value, self._model._schema, '', {enforce_missing: false});
-              }
-            }, function(err) {
-              error = err;
-            });
-            return new Query(this._model, this._query[key].call(this._query, value, options), {postValidation: true}, error);
-          }
-        })(key);
-        break;
+// MOVED TO INSIDE Query.prototype.setrethinkdb
+// /**
+//  * Import all the methods from rethinkdbdash, except the private ones (the ones
+//  * starting with an underscore).
+//  * Some method are slightly changed: `get`, `update`, `replace`.
+//  */
+// (function() {
+//   var Term = require(path.join(paths.libraries, '/rethinkdbdash.js'))({pool: false}).expr(1).__proto__;
+//   util.loopKeys(Term, function(Term, key) {
+//     if (key === 'run' || key[0] === '_') return;
+//     // Note: We suppose that no method has an empty name
+//     switch (key) {
+//       case 'get':
+//         // `get` in Mapping returns an error if the document is not found. //WAS // `get` in thinky returns an error if the document is not found.
+//         // The driver currently just returns `null`.
+//         (function(key) {
+//           Query.prototype[key] = function() {
+//             return new Query(this._model, this._query[key].apply(this._query, arguments)).default(this._r.error(new Errors.DocumentNotFound().message));
+//           }
+//         })(key);
+//         // Copy it in `_get` without `default`.
+//         (function(key) {
+//           Query.prototype['_get'] = function() {
+//             // Create a new query to let people fork it
+//             return new Query(this._model, this._query[key].apply(this._query, arguments));
+//           }
+//         })(key);
+//         break;
+//       case 'update':
+//       case 'replace':
+//         // `update` and `replace` can be used. A partial validation is performed before
+//         // sending the query, and a full validation is performed after the query. If the
+//         // validation fails, the document(s) will be reverted.
+//         (function(key) {
+//           Query.prototype[key] = function(value, options) {
+//             options = options || {};
+//             options.returnChanges = 'always';
+//             var error = null;
+//             var self = this;
+//             util.tryCatch(function() {
+//               if (util.isPlainObject(value)) {
+//                 schemaUtil.validate(value, self._model._schema, '', {enforce_missing: false});
+//               }
+//             }, function(err) {
+//               error = err;
+//             });
+//             return new Query(this._model, this._query[key].call(this._query, value, options), {postValidation: true}, error);
+//           }
+//         })(key);
+//         break;
 
-      case 'changes':
-        (function(key) {
-          Query.prototype[key] = function() {
-            // In case of `get().changes()` we want to remove the default(r.errror(...))
-            // TODO: Do not hardcode this?
-            if ((typeof this._query === 'function') && (this._query._query[0] === 92)) {
-              this._query._query = this._query._query[1][0];
-            }
-            return new Query(this._model, this._query[key].apply(this._query, arguments));
-          }
-        })(key);
-        break;
+//       case 'changes':
+//         (function(key) {
+//           Query.prototype[key] = function() {
+//             // In case of `get().changes()` we want to remove the default(r.errror(...))
+//             // TODO: Do not hardcode this?
+//             if ((typeof this._query === 'function') && (this._query._query[0] === 92)) {
+//               this._query._query = this._query._query[1][0];
+//             }
+//             return new Query(this._model, this._query[key].apply(this._query, arguments));
+//           }
+//         })(key);
+//         break;
 
-      case 'then':
-      case 'error':
-      case 'catch':
-      case 'finally':
-        (function(key) {
-          Query.prototype[key] = function() {
-            var promise = this.run();
-            return promise[key].apply(promise, arguments);
-          }
-        })(key);
-        break;
+//       case 'then':
+//       case 'error':
+//       case 'catch':
+//       case 'finally':
+//         (function(key) {
+//           Query.prototype[key] = function() {
+//             var promise = this.run();
+//             return promise[key].apply(promise, arguments);
+//           }
+//         })(key);
+//         break;
 
-      case 'ungroup':
-        (function(key) {
-          Query.prototype[key] = function() {
-            return new Query(this._model, this._query[key].apply(this._query, arguments), {ungroup: true});
-          }
-        })(key);
-        break;
+//       case 'ungroup':
+//         (function(key) {
+//           Query.prototype[key] = function() {
+//             return new Query(this._model, this._query[key].apply(this._query, arguments), {ungroup: true});
+//           }
+//         })(key);
+//         break;
 
-      default:
-        (function(key) {
-          Query.prototype[key] = function() {
-            // Create a new query to let people fork it
-            return new Query(this._model, this._query[key].apply(this._query, arguments));
-          }
-        })(key);
-        break;
-      }
-  });
-})();
+//       default:
+//         (function(key) {
+//           Query.prototype[key] = function() {
+//             // Create a new query to let people fork it
+//             return new Query(this._model, this._query[key].apply(this._query, arguments));
+//           }
+//         })(key);
+//         break;
+//       }
+//   });
+// })();
 
 
 Query.prototype._isPointWrite = function() {
