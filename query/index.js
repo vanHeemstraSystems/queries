@@ -22,6 +22,7 @@ function Query(model, query, options, error) {
   self._error = {};  // will be set, before passing on to mapping
   self._schema = {}; // will be set, before passing on to mapping
   self._schemaUtility = self._schema; 
+  self._rethinkdb = {};  // will be set, before passing on to mapping
   self._utility = {};   // will be set, before passing on to mapping
   self._feed = {};   // will be set, before passing on to mapping
   self._promise = {};   // will be set, before passing on to mapping  
@@ -74,6 +75,14 @@ Query.prototype.error = function() {
 
 Query.prototype.seterror = function(fnOrValue) {
   self._error = fnOrValue;
+}
+
+Query.prototype.rethinkdb = function() {
+  return self._rethinkdb;
+}
+
+Query.prototype.setrethinkdb = function(fnOrValue) {
+  self._rethinkdb = fnOrValue;
 }
 
 Query.prototype.schema = function() {
