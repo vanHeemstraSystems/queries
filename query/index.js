@@ -33,7 +33,7 @@ function Query(model, query, options, error) {
   if (model !== undefined) {
     this._r = model._getModel()._Mapping.r; //WAS model._getModel()._thinky.r;
     //ORIGINAL util.loopKeys(model._getModel()._staticMethods, function(staticMethods, key) {
-    self.utility().loopKeys(model._getModel()._staticMethods, function(staticMethods, key) {
+    self._utility.loopKeys(model._getModel()._staticMethods, function(staticMethods, key) {
       (function(_key) {
         _self[_key] = function() {
           return staticMethods[_key].apply(_self, arguments);
@@ -50,21 +50,31 @@ function Query(model, query, options, error) {
     this._query = this._r.table(model.getTableName());
   }
 
-  //ORIGINAL if (util.isPlainObject(options)) {
-  if (self.utility().isPlainObject(options)) {
-    if (options.postValidation) {
-      this._postValidation = options.postValidation === true;
+  console.log('queries query - self._utility: ', self._utility); // FOR TEST ONLY!
+  
+  try { //NEW LINE: self._utility needs to be not an empty function
+
+    //ORIGINAL if (util.isPlainObject(options)) {
+    if (self._utility.isPlainObject(options)) {
+      if (options.postValidation) {
+        this._postValidation = options.postValidation === true;
+      }
+      if (options.ungroup) {
+        this._ungroup = options.ungroup === true;
+      }
+      else {
+        this._ungroup = false;
+      }
     }
-    if (options.ungroup) {
-      this._ungroup = options.ungroup === true;
-    }
-    else {
+    else { // let the user rework the result after ungroup
       this._ungroup = false;
     }
-  }
-  else { // let the user rework the result after ungroup
-    this._ungroup = false;
-  }
+
+  } //NEW LINE
+  catch(err) { //NEW LINE
+    console.log('queries query - error: ', err); //NEW LINE
+  } //NEW LINE
+
   if (error) {
     // Note `Query.prototype.error` is defined because of `r.error`, so we shouldn't
     // defined this.error.
