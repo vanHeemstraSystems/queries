@@ -91,20 +91,25 @@ Query.prototype.rethinkdb = function() {
 }
 
 Query.prototype.setrethinkdb = function(fnOrValue) {
-  self._rethinkdb = fnOrValue;
+  self._rethinkdb = fnOrValue; // Works!
   // Added below functionality, now that we have access to rethinkdb Object
   /**
    * Import all the methods from rethinkdbdash, except the private ones (the ones
    * starting with an underscore).
    * Some method are slightly changed: `get`, `update`, `replace`.
    */
-
   console.log('queries query - self._rethinkdb: ', self._rethinkdb); // FOR TESTING ONLY!
 
   //ORIGINAL var Term = require(path.join(paths.libraries, '/rethinkdbdash.js'))({pool: false}).expr(1).__proto__;
-  var Term = self._rethinkdb({pool: false}).expr(1).__proto__; // Causes [TypeError: self._rethinkdb is not a function] because fnOrValue is not a function: FIX THIS!
+  var Term = self._rethinkdb({pool: false}).expr(1).__proto__; // Works! 
+
+
+
+  // UP TO HERE ALL IS GOOD
+
+
   //ORIGINAL util.loopKeys(Term, function(Term, key) {
-  self.utility().loopKeys(Term, function(Term, key) {
+  self._utility.loopKeys(Term, function(Term, key) {
     if (key === 'run' || key[0] === '_') return;
     // Note: We suppose that no method has an empty name
     switch (key) {
@@ -193,7 +198,7 @@ Query.prototype.setrethinkdb = function(fnOrValue) {
         break;
       }
   });
-} // oef setrethinkdb
+} // eof setrethinkdb
 
 Query.prototype.schema = function() {
   return self._schema;
