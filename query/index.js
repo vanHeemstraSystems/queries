@@ -106,10 +106,7 @@ Query.prototype.setrethinkdb = function(fnOrValue) {
   // UP TO HERE ALL IS GOOD
 
   //ORIGINAL util.loopKeys(Term, function(Term, key) {
-  self._utility.loopKeys(Term, function(Term, key) {  // THIS FAILS CURRENTLY, CHECK utility and specifically its function loopKeys()!!
-
-    console.log('queries query - inside setrethinkdb calling self._utility.loopKeys()')
-
+  self._utility.loopKeys(Term, function(Term, key) {
     if (key === 'run' || key[0] === '_') return;
     // Note: We suppose that no method has an empty name
     switch (key) {
@@ -198,7 +195,6 @@ Query.prototype.setrethinkdb = function(fnOrValue) {
         break;
       }
   });
-  console.log('queries query - reached end of setrethinkdb() successfully') // FOR TESTING ONLY, WE CURRENTLY DO NOT REACH THIS !!
 } // eof setrethinkdb
 
 Query.prototype.schema = function() {
